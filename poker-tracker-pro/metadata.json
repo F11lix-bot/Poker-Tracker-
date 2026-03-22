@@ -1,0 +1,5 @@
+{
+  "name": "Poker Tracker Pro",
+  "description": "A comprehensive poker session tracker with real-time stats, player management, and game history. Supports guest read-only access and admin management.",
+  "requestFramePermissions": []
+}

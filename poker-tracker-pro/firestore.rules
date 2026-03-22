@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: players
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - totalBuyIn: number (required)
+    //   - totalCashOut: number (required)
+    //   - totalProfit: number (required)
+    //   - gamesPlayed: number (required)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: games
+    // Document ID: auto-generated
+    // Fields:
+    //   - date: timestamp (required)
+    //   - location: string (required)
+    //   - notes: string (optional)
+    //   - totalPot: number (required)
+    //   - discrepancy: number (required)
+    //   - status: string (required, 'active' or 'completed')
+    //   - createdAt: timestamp (required)
+    //
+    // Sub-collection: games/{gameId}/sessions
+    // Document ID: auto-generated
+    // Fields:
+    //   - playerId: string (required)
+    //   - playerName: string (required)
+    //   - buyIn: number (required)
+    //   - cashOut: number (required)
+    //   - profit: number (required)
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         request.auth.token.email == "admin@poker.com" ||
+         request.auth.token.email == "felbel05@gmail.com");
+    }
+
+    function isValidPlayer(data) {
+      return data.keys().hasAll(['name', 'totalBuyIn', 'totalCashOut', 'totalProfit', 'gamesPlayed', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.totalBuyIn is number &&
+             data.totalCashOut is number &&
+             data.totalProfit is number &&
+             data.gamesPlayed is number &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidGame(data) {
+      return data.keys().hasAll(['date', 'location', 'totalPot', 'discrepancy', 'status', 'createdAt']) &&
+             data.date is timestamp &&
+             data.location is string && data.location.size() > 0 && data.location.size() < 200 &&
+             data.totalPot is number &&
+             data.discrepancy is number &&
+             data.status in ['active', 'completed'] &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidSession(data) {
+      return data.keys().hasAll(['playerId', 'playerName', 'buyIn', 'cashOut', 'profit', 'createdAt']) &&
+             data.playerId is string &&
+             data.playerName is string && data.playerName.size() > 0 &&
+             data.buyIn is number &&
+             data.cashOut is number &&
+             data.profit is number &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // Collection Group for sessions (needed for PlayerGraph)
+    match /{path=**}/sessions/{sessionId} {
+      allow read: if true;
+    }
+
+    // Users collection for roles
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Players collection
+    match /players/{playerId} {
+      allow read: if true; // Publicly readable
+      allow write: if isAdmin() && isValidPlayer(request.resource.data);
+    }
+
+    // Games collection
+    match /games/{gameId} {
+      allow read: if true; // Publicly readable
+      allow write: if isAdmin() && isValidGame(request.resource.data);
+
+      // Sessions sub-collection
+      match /sessions/{sessionId} {
+        allow read: if true; // Publicly readable
+        allow write: if isAdmin() && isValidSession(request.resource.data);
+      }
+    }
+  }
+}

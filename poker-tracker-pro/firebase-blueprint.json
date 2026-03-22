@@ -1,0 +1,52 @@
+{
+  "entities": {
+    "Player": {
+      "title": "Player",
+      "description": "A registered poker player.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The player's name." },
+        "totalBuyIn": { "type": "number", "description": "Total amount spent on buy-ins." },
+        "totalCashOut": { "type": "number", "description": "Total amount cashed out." },
+        "totalProfit": { "type": "number", "description": "Total net profit (CashOut - BuyIn)." },
+        "gamesPlayed": { "type": "number", "description": "Number of games participated in." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the player was registered." }
+      },
+      "required": ["name", "totalBuyIn", "totalCashOut", "totalProfit", "gamesPlayed", "createdAt"]
+    },
+    "Game": {
+      "title": "Game",
+      "description": "A poker session/evening.",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time", "description": "The date of the game." },
+        "location": { "type": "string", "description": "Where the game took place." },
+        "notes": { "type": "string", "description": "Optional notes about the session." },
+        "totalPot": { "type": "number", "description": "Total buy-ins for this game." },
+        "discrepancy": { "type": "number", "description": "Difference between total buy-ins and total cash-outs." },
+        "status": { "type": "string", "enum": ["active", "completed"], "description": "Current status of the game." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the game was created." }
+      },
+      "required": ["date", "location", "totalPot", "discrepancy", "status", "createdAt"]
+    },
+    "Session": {
+      "title": "Session",
+      "description": "A player's participation in a specific game.",
+      "type": "object",
+      "properties": {
+        "playerId": { "type": "string", "description": "Reference to the player." },
+        "playerName": { "type": "string", "description": "Player name for denormalization." },
+        "buyIn": { "type": "number", "description": "Amount the player put in." },
+        "cashOut": { "type": "number", "description": "Amount the player took out." },
+        "profit": { "type": "number", "description": "Net profit for this session." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the session was recorded." }
+      },
+      "required": ["playerId", "playerName", "buyIn", "cashOut", "profit", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/players": { "schema": "Player", "description": "Collection of all players." },
+    "/games": { "schema": "Game", "description": "Collection of all poker games." },
+    "/games/{gameId}/sessions": { "schema": "Session", "description": "Sub-collection of player sessions for a game." }
+  }
+}
